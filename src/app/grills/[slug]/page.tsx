@@ -68,6 +68,15 @@ export default async function GrillPage({ params, searchParams }: PageProps<"/gr
                   <dd className="text-foreground">{grill.kickoff.plane}</dd>
                 </>
               )}
+              {grill.kickoff.checked_at && !grill.kickoff.landed_at && (
+                <>
+                  <dt>✅ recibido</dt>
+                  <dd className="text-foreground">
+                    {formatEpochSeconds(grill.kickoff.checked_at)} · pendiente de aterrizar (
+                    <span className="font-mono">t360 collect {grill.slug} --repo …</span>)
+                  </dd>
+                </>
+              )}
               {grill.kickoff.landed_at && (
                 <>
                   <dt>Aterrizado</dt>

@@ -6,8 +6,8 @@ the Buzz agent under `~/.buzz/PLANS/`, and the live thread of each grill read fr
 (whose turn it is, last question pending). Read-only: it never writes to Buzz or to `PLANS/`.
 
 The same logic is exposed as a CLI, `t360`, the operator of the flow (`docs/design/01-plan-v2.md`):
-`status`, `kickoff` and `collect` today; `scan` and the LaunchAgent next. The panel itself stays
-read-only; every write to Buzz or to `PLANS/` goes through `t360`.
+`status`, `kickoff`, `collect`, `scan` and the LaunchAgent that runs it (`install-agent`). The panel
+itself stays read-only; every write to Buzz or to `PLANS/` goes through `t360`.
 
 Context, decisions and roadmap: [`docs/design/00-producto.md`](docs/design/00-producto.md).
 
@@ -45,6 +45,18 @@ cat story.md | t360 kickoff <slug> --mode rf --plane work --stdin --description 
 # kickoff.json and post the closing line in the thread. Never pushes.
 t360 collect <slug> --repo ~/personal/some-repo
 ```
+
+```bash
+# The ✅ watcher: one pass now, or every 15 s as a LaunchAgent (see launchd/README.md)
+t360 scan [--verbose] [--json]
+t360 install-agent      # ~/Library/LaunchAgents/com.andrulli.t360.plist, log in ~/Library/Logs/t360.log
+t360 uninstall-agent
+```
+
+`scan` records `checked_at` in `kickoff.json` when the owner's exact `✅` appears as a reply to
+the kickoff (the panel's own rule) and posts one line in the thread naming the missing artifacts.
+It never lands: the panel and `t360 status` show "✅ recibido, pendiente de aterrizar" until a
+human runs `collect`. Only grills opened by `t360 kickoff` are watched.
 
 `--plane` is mandatory (ADR D4): the user classifies the story. A brief file under a forbidden
 root (`[landing] forbidden_roots`, `~/work` by default) can only be opened as `work`, and
@@ -92,7 +104,8 @@ subcommands (`messages get`, `users get`, `channels get`).
 - `src/core/` — logic with no Next dependency: `config.ts`, `grills.ts` (`Grill` model from
   `<agent home>/PLANS/<slug>/`), `kickoff-file.ts` (`kickoff.json`, atomic writes, slug lock),
   `plane.ts` (forbidden roots), `relay.ts`, `thread.ts` (thread + turn), `kickoff.ts`,
-  `collect.ts`, `format.ts`.
+  `collect.ts`, `scan.ts`, `launchd.ts`, `fs.ts`, `format.ts`.
+- `launchd/` — rendered plist example and notes for the watcher.
 - `src/cli/` — the `t360` binary (`main.ts`, `status.ts`); built to `dist/cli/` by `build:cli`.
 - `src/lib/` — `server-only` re-exports of `src/core` for the panel.
 - `src/app/page.tsx` — grill list; `src/app/grills/[slug]/page.tsx` — thread and artifacts viewer.

@@ -1,6 +1,9 @@
-import { mkdir, open, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { mkdir, open, readFile, rm } from "node:fs/promises";
 import path from "node:path";
+import { writeAtomic } from "./fs.ts";
 import type { Plane } from "./plane.ts";
+
+export { writeAtomic };
 
 /**
  * `PLANS/<slug>/kickoff.json` is the only record of a grill (ADR D5). Written by
@@ -44,19 +47,6 @@ export async function readKickoffFile(dir: string): Promise<Kickoff | null> {
     return JSON.parse(await readFile(path.join(dir, KICKOFF_FILE), "utf8")) as Kickoff;
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === "ENOENT") return null;
-    throw err;
-  }
-}
-
-/** Write a file atomically: temp file next to it, then rename over it. */
-export async function writeAtomic(file: string, text: string): Promise<void> {
-  await mkdir(path.dirname(file), { recursive: true });
-  const tmp = `${file}.${process.pid}.${Date.now().toString(36)}.tmp`;
-  try {
-    await writeFile(tmp, text, { flag: "wx" });
-    await rename(tmp, file);
-  } catch (err) {
-    await rm(tmp, { force: true });
     throw err;
   }
 }

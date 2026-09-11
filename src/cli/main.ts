@@ -5,6 +5,9 @@ import { collect, CollectError, type CollectErrorCode } from "../core/collect.ts
 import { briefFromFile, kickoff, KickoffError, planeOfBrief, type KickoffErrorCode } from "../core/kickoff.ts";
 import { isMode, type GrillMode } from "../core/kickoff-file.ts";
 import { isPlane, type Plane } from "../core/plane.ts";
+import { formatEpochSeconds } from "../core/format.ts";
+import { AGENT_LABEL, agentPaths, currentEntry, installAgent, LaunchdError, SCAN_INTERVAL_SECONDS, uninstallAgent } from "../core/launchd.ts";
+import { scan } from "../core/scan.ts";
 import { NotFound, renderList, renderOne, statusList, statusOne } from "./status.ts";
 
 const USAGE = `t360 — trade-360 desde la terminal
@@ -18,10 +21,15 @@ Uso:
   t360 collect <slug> --repo <path> [--json]
       copia los cuatro artefactos a <repo>/docs/grill/<slug>/, commitea
       "docs(grill): <slug> verdict", anota landed_* en kickoff.json y publica el cierre. No hace push.
+  t360 scan [--json] [--verbose]
+      una pasada por los grills abiertos: al ver el ✅ del owner anota checked_at en kickoff.json
+      y avisa en el hilo qué artefactos faltan. Nunca aterriza. Silencioso si no pasa nada.
+  t360 install-agent | uninstall-agent
+      LaunchAgent com.andrulli.t360 que ejecuta "t360 scan" cada 15 s (log en ~/Library/Logs/t360.log)
   t360 --help | --version
 
 Códigos de salida: 0 ok · 1 error · 2 uso · 3 no encontrado o frontera de planos ·
-4 artefacto faltante · 5 destino ya existe · 6 candado ocupado.
+4 artefacto faltante · 5 destino ya existe · 6 candado ocupado. scan: 1 si algún grill falló.
 
 Configuración: ~/.config/t360/config.toml (T360_CONFIG) o, si no existe,
 ~/.config/buzz-kickoff.env (BUZZ_KICKOFF_CONFIG).`;
@@ -54,6 +62,12 @@ export async function main(argv: string[]): Promise<number> {
         return await kickoffCmd(rest);
       case "collect":
         return await collectCmd(rest);
+      case "scan":
+        return await scanCmd(rest);
+      case "install-agent":
+        return await installAgentCmd();
+      case "uninstall-agent":
+        return await uninstallAgentCmd();
       default:
         err(`t360: subcomando desconocido "${command}"\n${USAGE}`);
         return 2;
@@ -190,6 +204,57 @@ async function collectCmd(argv: string[]): Promise<number> {
     if (e instanceof CollectError) {
       err(`t360 collect: ${e.message}`);
       return COLLECT_EXIT[e.code];
+    }
+    throw e;
+  }
+}
+
+async function scanCmd(argv: string[]): Promise<number> {
+  const { values } = parse(argv, { verbose: { type: "boolean" } });
+  const outcomes = await scan({ config: await loadConfig() });
+  if (values.json) {
+    out(JSON.stringify(outcomes, null, 2));
+  } else {
+    const stamp = new Date().toISOString();
+    for (const o of outcomes) {
+      if (o.result === "checked") {
+        out(`${stamp} ${o.slug}: ✅ recibido (${formatEpochSeconds(o.checkedAt)})${o.missing.length ? `; faltan ${o.missing.join(", ")}` : "; los cuatro artefactos están"}`);
+        if (!o.notice.ok) err(`${stamp} ${o.slug}: checked_at anotado, pero no se pudo avisar en el hilo: ${o.notice.detail}`);
+      } else if (o.result === "error") {
+        err(`${stamp} ${o.slug}: error: ${o.detail}`);
+      } else if (values.verbose) {
+        out(`${stamp} ${o.slug}: ${o.result === "waiting" ? "esperando ✅" : `omitido (${o.why})`}`);
+      }
+    }
+  }
+  return outcomes.some((o) => o.result === "error") ? 1 : 0;
+}
+
+async function installAgentCmd(): Promise<number> {
+  try {
+    const { plist } = await installAgent(await loadConfig(), await currentEntry());
+    out(`Instalado ${AGENT_LABEL}: t360 scan cada ${SCAN_INTERVAL_SECONDS} s`);
+    out(`Plist  ${plist}`);
+    out(`Log    ${agentPaths().log}`);
+    return 0;
+  } catch (e) {
+    if (e instanceof LaunchdError) {
+      err(`t360 install-agent: ${e.message}`);
+      return 1;
+    }
+    throw e;
+  }
+}
+
+async function uninstallAgentCmd(): Promise<number> {
+  try {
+    const { plist, existed } = await uninstallAgent();
+    out(existed ? `Desinstalado ${AGENT_LABEL} (${plist})` : `${AGENT_LABEL} no estaba instalado (${plist})`);
+    return 0;
+  } catch (e) {
+    if (e instanceof LaunchdError) {
+      err(`t360 uninstall-agent: ${e.message}`);
+      return 1;
     }
     throw e;
   }

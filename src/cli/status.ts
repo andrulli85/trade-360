@@ -96,6 +96,13 @@ export function renderOne({ grill, thread }: StatusOne, agentName: string): stri
       `Inicio      ${formatEpochSeconds(grill.kickoff.started_at)}`,
     );
   }
+  if (grill.kickoff?.plane) lines.push(`Plano       ${grill.kickoff.plane}`);
+  if (grill.kickoff?.checked_at && !grill.kickoff.landed_at) {
+    lines.push(`✅ recibido ${formatEpochSeconds(grill.kickoff.checked_at)} · pendiente de aterrizar (t360 collect ${grill.slug} --repo …)`);
+  }
+  if (grill.kickoff?.landed_at) {
+    lines.push(`Aterrizado  ${grill.kickoff.landed_repo}/docs/grill/${grill.slug}/ · ${grill.kickoff.commit?.slice(0, 7)} · ${formatEpochSeconds(grill.kickoff.landed_at)}`);
+  }
   lines.push(`Artefactos  ${ARTIFACT_NAMES.map((a) => `${a} ${grill.artifacts[a] ? "✔" : "✘"}`).join("  ")}`);
   if (grill.extraFiles.length) lines.push(`Otros       ${grill.extraFiles.join(", ")}`);
   lines.push("");
