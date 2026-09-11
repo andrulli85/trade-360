@@ -8,8 +8,10 @@ respects, and the roadmap (v0 read-only → v1 observe Buzz → v2 operate).
 
 Rules of record:
 
-- The panel is read-only against Buzz and `~/.buzz/PLANS/` until v2 is designed. Do not add
-  writes casually.
+- The panel is read-only against Buzz and `~/.buzz/PLANS/`. Writes happen only in `t360`
+  subcommands (`kickoff`, `collect`; `scan` next) through `src/core/`, each with its own relay
+  allowlist; the panel will call those subcommands in F5 of `docs/design/01-plan-v2.md`, never
+  `buzz` directly. Do not add writes casually.
 - Plane boundary: artifacts of work-plane stories never land in personal repos. Reuse the
   `buzz-kickoff` scripts' checks; never bypass them.
 - Secrets (nsec, auth tags) never reach the client, the repo or the disk. Config

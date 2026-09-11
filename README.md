@@ -5,8 +5,9 @@ from a Claude Code session, their state, their artifacts (brief, ledger, verdict
 the Buzz agent under `~/.buzz/PLANS/`, and the live thread of each grill read from the relay
 (whose turn it is, last question pending). Read-only: it never writes to Buzz or to `PLANS/`.
 
-The same logic is exposed as a CLI, `t360`, which will grow into the operator of the flow
-(`kickoff | scan | collect`, see `docs/design/01-plan-v2.md`). Today: `t360 status`.
+The same logic is exposed as a CLI, `t360`, the operator of the flow (`docs/design/01-plan-v2.md`):
+`status`, `kickoff` and `collect` today; `scan` and the LaunchAgent next. The panel itself stays
+read-only; every write to Buzz or to `PLANS/` goes through `t360`.
 
 Context, decisions and roadmap: [`docs/design/00-producto.md`](docs/design/00-producto.md).
 
@@ -34,6 +35,23 @@ t360 status trade-360-v2
 
 `t360 status` prints exactly what the panel shows (same status labels, same turn card text);
 the list is read from disk, the per-slug view reads the relay.
+
+```bash
+# Open a grill: private channel + members + kickoff message + PLANS/<slug>/{brief.md,kickoff.json}
+t360 kickoff <slug> --mode dec --plane personal --brief story.md --description "one line" [--with <pubkey>]
+cat story.md | t360 kickoff <slug> --mode rf --plane work --stdin --description "…"
+
+# Land the four artifacts in a repo, commit "docs(grill): <slug> verdict", record landed_* in
+# kickoff.json and post the closing line in the thread. Never pushes.
+t360 collect <slug> --repo ~/personal/some-repo
+```
+
+`--plane` is mandatory (ADR D4): the user classifies the story. A brief file under a forbidden
+root (`[landing] forbidden_roots`, `~/work` by default) can only be opened as `work`, and
+`collect` refuses `plane = work` grills, repos or destinations under a forbidden root, symlinked
+destinations and grills opened by the old scripts whose brief came from there. Exit codes follow
+`collect.sh`: `3` plane boundary / not found, `4` missing artifact, `5` destination exists or
+already landed, `6` the slug is locked (`PLANS/<slug>/.lock`, left by a crashed run).
 
 ## Configuration
 
@@ -72,7 +90,9 @@ subcommands (`messages get`, `users get`, `channels get`).
 ## Layout
 
 - `src/core/` — logic with no Next dependency: `config.ts`, `grills.ts` (`Grill` model from
-  `<agent home>/PLANS/<slug>/`), `relay.ts`, `thread.ts` (thread + turn), `format.ts`.
+  `<agent home>/PLANS/<slug>/`), `kickoff-file.ts` (`kickoff.json`, atomic writes, slug lock),
+  `plane.ts` (forbidden roots), `relay.ts`, `thread.ts` (thread + turn), `kickoff.ts`,
+  `collect.ts`, `format.ts`.
 - `src/cli/` — the `t360` binary (`main.ts`, `status.ts`); built to `dist/cli/` by `build:cli`.
 - `src/lib/` — `server-only` re-exports of `src/core` for the panel.
 - `src/app/page.tsx` — grill list; `src/app/grills/[slug]/page.tsx` — thread and artifacts viewer.

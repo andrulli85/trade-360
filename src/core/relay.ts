@@ -18,6 +18,18 @@ const execFileAsync = promisify(execFile);
  */
 export const READ_ONLY_COMMANDS: ReadonlySet<string> = new Set(["messages get", "users get", "channels get"]);
 
+/** What `t360 kickoff` needs on top of reading: open the channel and post the kickoff. */
+export const KICKOFF_COMMANDS: ReadonlySet<string> = new Set([
+  ...READ_ONLY_COMMANDS,
+  "channels create",
+  "channels add-member",
+  "channels topic",
+  "messages send",
+]);
+
+/** What `t360 collect` needs on top of reading: the closing line in the thread. */
+export const COLLECT_COMMANDS: ReadonlySet<string> = new Set([...READ_ONLY_COMMANDS, "messages send"]);
+
 export type RelayReason =
   /** The config has no `[keychain]` block: nothing to sign with. */
   | "no-identity"
@@ -83,9 +95,14 @@ export type BuzzChannel = {
   pubkey: string;
 };
 
+export type RunOptions = {
+  /** Return stdout as text instead of parsing JSON (subcommands that print nothing useful). */
+  raw?: boolean;
+};
+
 export type Relay = {
   /** Run one allowed subcommand (`"messages get"`) and parse its JSON output. */
-  run<T>(command: string, args: string[]): Promise<T>;
+  run<T>(command: string, args: string[], opts?: RunOptions): Promise<T>;
   getMessages(channelId: string, opts?: { since?: number; limit?: number }): Promise<BuzzMessage[]>;
   getChannel(channelId: string): Promise<BuzzChannel>;
   /** Profile by pubkey, cached for the life of the relay; null when unknown or unreachable. */
@@ -121,7 +138,7 @@ export function createRelay(options: RelayOptions = {}): Relay {
   const configOf = async (): Promise<Config> =>
     typeof options.config === "function" ? options.config() : (options.config ?? loadConfig());
 
-  async function run<T>(command: string, args: string[]): Promise<T> {
+  async function run<T>(command: string, args: string[], opts: RunOptions = {}): Promise<T> {
     if (!allow.has(command)) {
       throw new Error(`relay: "${command}" no está en la lista de subcomandos permitidos de este llamador`);
     }
@@ -145,7 +162,7 @@ export function createRelay(options: RelayOptions = {}): Relay {
         timeout,
         maxBuffer: 8 * 1024 * 1024,
       });
-      return JSON.parse(stdout) as T;
+      return (opts.raw ? stdout : JSON.parse(stdout)) as T;
     } catch (err) {
       const code = (err as { code?: string | number }).code;
       if (code === "ENOENT" || code === "EACCES") {
