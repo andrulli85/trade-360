@@ -13,7 +13,7 @@ From Conductor, the **Run** tab has `dev` (default) and `check`. From a terminal
 
 ```bash
 npm ci
-npm run dev        # http://localhost:3000
+npm run dev        # http://localhost:3000 (bound to 127.0.0.1 only)
 npm run check      # eslint + next typegen + tsc
 ```
 
