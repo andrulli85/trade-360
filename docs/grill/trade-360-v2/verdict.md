@@ -1,6 +1,6 @@
 # ADR: dónde vive la lógica de operar un grill (trade-360 v2)
 
-**Estado:** propuesto (pendiente de ✅ en el canal) · **Fecha:** 2026-09-11 · **Canal:** trade-360-v2 (`2457e393-0e00-4c04-bacd-b5c89acbebbc`) · **Ledger:** `PLANS/trade-360-v2/ledger.md` · **Brief:** `PLANS/trade-360-v2/brief.md`
+**Estado:** aceptado (✅ de Andy en el canal, 2026-09-11 16:28; plan en `docs/design/01-plan-v2.md`) · **Fecha:** 2026-09-11 · **Canal:** trade-360-v2 (`2457e393-0e00-4c04-bacd-b5c89acbebbc`) · **Ledger:** `PLANS/trade-360-v2/ledger.md` · **Brief:** `PLANS/trade-360-v2/brief.md`
 
 ## Contexto
 

@@ -31,8 +31,15 @@ Decisiones ya tomadas que este repo respeta:
 
 ## Qué es trade-360
 
-Una **web app local** (Next.js, se levanta desde la pestaña Run de Conductor) que da la vista que
-hoy solo existe repartida entre la terminal, `PLANS/` y los canales de Buzz:
+Un **producto propio de Andrés**, en el plano personal, con intención de comercializarlo (D2 del
+ADR `docs/grill/trade-360-v2/verdict.md`). No depende de la configuración personal de su autor
+(toolkit, `buzz-kickoff.env`, llavero de `claude-voice`); lo que hoy la usa está en transición
+(ver `01-plan-v2.md`). Roadmap de producto, sin registrar todavía en detalle: apoyo a
+licitaciones, planificación de equipos de trade marketing, dashboard de terreno, y tickets que
+se convierten en trabajo para agentes en Conductor.
+
+Su primera pieza es una **web app local** (Next.js, se levanta desde la pestaña Run de Conductor)
+que da la vista que hoy solo existe repartida entre la terminal, `PLANS/` y los canales de Buzz:
 
 1. **v0 — leer (hecho en este commit)**: lista de grills en `<AGENT_HOME>/PLANS/`, estado
    (`abierto` = kickoff sin verdict, `cerrado` = verdict presente, `notas` = carpeta sin kickoff),
@@ -42,9 +49,11 @@ hoy solo existe repartida entre la terminal, `PLANS/` y los canales de Buzz:
    **Hilo** con los mensajes del kickoff y sus respuestas, autores resueltos por pubkey. Se lee
    con `buzz messages get` a través del `buzz.sh` del skill (identidad `Claude Terminal`); la
    lista principal sigue siendo de disco para no golpear el relay por cada fila.
-3. **v2 — operar**: abrir un grill desde el panel (misma lógica que `/buzz-kickoff`: brief,
-   canal, kickoff, watcher) y aterrizar artefactos en el repo elegido, reutilizando los scripts
-   del skill, no reimplementándolos. Aquí entra la clasificación de plano antes de crear nada.
+3. **v2 — operar (decidido, en plan)**: la lógica de operar pasa a un CLI **`t360`** en este
+   repo (`kickoff | scan | collect | status`), el vigilante del ✅ es un LaunchAgent que ejecuta
+   `t360 scan`, y el skill `buzz-kickoff` queda como envoltorio fino. El panel abre grills y
+   aterriza artefactos solo a través de `t360`. ADR: `docs/grill/trade-360-v2/verdict.md`;
+   fases: `01-plan-v2.md`.
 4. **Después**: workflows del vault (`/deep-research-lite`, `/retro`) como atajos, estado de los
    agentes (`buzz-acp` corriendo, cuál), y puesto portable (qué falta en esta máquina según
    `SETUP.md`).
@@ -74,10 +83,9 @@ hoy solo existe repartida entre la terminal, `PLANS/` y los canales de Buzz:
 
 ## Abierto
 
-- Nombre: `trade-360` es el nombre del repo en GitHub; el producto no tiene nombre todavía.
-- Si v2 debe llamar a los scripts del skill (`kickoff.sh`, `wait-check.sh`, `collect.sh`) o si
-  el skill debe pasar a llamar a un CLI/servicio de este repo. Decide dónde vive la lógica.
-- Cómo se representa "aterrizado": hoy el panel no sabe en qué repo quedó `docs/grill/<slug>/`.
-  Candidato: que `collect.sh` anote `landed_repo` y commit en `kickoff.json`.
-- Vigilante permanente del `✅` (ADR en `claude-voice/docs/grill/ejemplo-dec-vigilante-verdict.md`)
-  vs Monitor por sesión: el panel podría ser el dueño natural del registro de grills abiertos.
+- Nombre comercial del producto (`trade-360` es el nombre del repo).
+- Detalle del roadmap de producto más allá del panel (F6 del plan).
+
+Cerrado el 2026-09-11 por el ADR v2: dónde vive la lógica (CLI `t360` en este repo), cómo se
+representa "aterrizado" (`landed_repo`/`commit`/`landed_at` en `kickoff.json`), y el vigilante
+(LaunchAgent con `t360 scan`; `PLANS/*/kickoff.json` como único registro).
