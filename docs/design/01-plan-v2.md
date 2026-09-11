@@ -63,7 +63,7 @@ Cada fase termina con un PR mergeable por sí solo; el panel sigue funcionando e
 - Aceptación: reproducir el grill `proj-7-export-cal` en un `PLANS/` temporal con el `buzz`
   falso da los mismos cuatro archivos.
 
-### F3 — `t360 scan` + LaunchAgent (migra `wait-check.sh`, cumple D1)
+### F3 — `t360 scan` + LaunchAgent (migra `wait-check.sh`, cumple D1) — hecho (2026-09-11)
 
 - `t360 scan`: recorre `PLANS/*/kickoff.json` sin `checked_at`, lee el canal desde
   `started_at - 1`, busca el `✅` exacto del owner en el hilo, y al encontrarlo anota
@@ -112,9 +112,9 @@ sesiones; F4 una; F5 una o dos.
 
 ## Riesgos
 
-- **Dos sondeadores durante la transición** (Monitor del skill viejo + LaunchAgent nuevo). Regla:
-  el LaunchAgent se instala solo después de mergear F4 en el toolkit, o se deja el Monitor apagado
-  a mano mientras se prueba F3.
+- **Dos sondeadores durante la transición** (Monitor del skill viejo + LaunchAgent nuevo). Regla
+  aplicada en F3: `scan` solo vigila los grills abiertos por `t360 kickoff` (llevan `plane`); los
+  abiertos por los scripts del skill quedan para su Monitor. Un grill, un sondeador.
 - **Node en el LaunchAgent**: la ruta de `node` debe ir absoluta en el plist (`install-agent` la
   resuelve con `process.execPath`); un `nvm` que cambie de versión rompe el agente. Alternativa si
   molesta: compilar `t360` a binario único (`node --experimental-sea` o `bun build --compile`).

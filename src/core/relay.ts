@@ -30,6 +30,9 @@ export const KICKOFF_COMMANDS: ReadonlySet<string> = new Set([
 /** What `t360 collect` needs on top of reading: the closing line in the thread. */
 export const COLLECT_COMMANDS: ReadonlySet<string> = new Set([...READ_ONLY_COMMANDS, "messages send"]);
 
+/** What `t360 scan` needs on top of reading: the "✅ recibido" notice in the thread. */
+export const SCAN_COMMANDS: ReadonlySet<string> = COLLECT_COMMANDS;
+
 export type RelayReason =
   /** The config has no `[keychain]` block: nothing to sign with. */
   | "no-identity"

@@ -215,3 +215,32 @@ test("t360 collect: plane=work sale con 3 y candado ocupado con 6", async () => 
   assert.equal(l.code, 6);
   assert.match(l.stderr, /candado/);
 });
+
+/* ---------- F3: scan ---------- */
+
+test("t360 scan: silencioso mientras espera, una línea al ver el ✅, --verbose y --json", async () => {
+  const { readFile } = await import("node:fs/promises");
+  await sb.writeGrill("watched", { "brief.md": "b", "kickoff.json": kickoffJson({ slug: "watched", plane: "personal" }) });
+  await sb.setMessages([rootMsg(), msg({ pubkey: AGENT, content: "❓ Q1", created_at: 1002 })]);
+  const quiet = await t360("scan");
+  assert.equal(quiet.code, 0);
+  assert.equal(quiet.stdout, "", "nada que contar: nada en el log del LaunchAgent");
+  const verbose = await t360("scan", "--verbose");
+  assert.match(verbose.stdout, /watched: esperando ✅/);
+  assert.match(verbose.stdout, /notas: |demo: /);
+
+  await sb.setMessages([rootMsg(), msg({ pubkey: AGENT, content: "❓ Q1", created_at: 1002 }), msg({ pubkey: OWNER, content: "✅", created_at: 1020 })]);
+  const hit = await t360("scan");
+  assert.equal(hit.code, 0);
+  assert.match(hit.stdout, /^\S+ watched: ✅ recibido \(.*\); faltan ledger\.md, verdict\.md$/m);
+  assert.doesNotMatch(hit.stdout, /esperando|omitido/, "sin --verbose solo se cuentan eventos");
+  const rec = JSON.parse(await readFile(path.join(sb.plansDir, "watched", "kickoff.json"), "utf8"));
+  assert.equal(rec.checked_at, 1020);
+
+  const json = await t360("scan", "--json");
+  const w = JSON.parse(json.stdout).find((o: { slug: string }) => o.slug === "watched");
+  assert.deepEqual(w, { slug: "watched", result: "skipped", why: "checked" });
+
+  const st = await t360("status", "watched");
+  assert.match(st.stdout, /✅ recibido .* · pendiente de aterrizar \(t360 collect watched --repo …\)/);
+});

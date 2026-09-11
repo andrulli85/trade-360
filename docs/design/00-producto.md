@@ -59,7 +59,7 @@ que da la vista que hoy solo existe repartida entre la terminal, `PLANS/` y los 
    agentes (`buzz-acp` corriendo, cuál), y puesto portable (qué falta en esta máquina según
    `SETUP.md`).
 
-## Arquitectura (F1–F2 del plan v2, 2026-09-11)
+## Arquitectura (F1–F3 del plan v2, 2026-09-11)
 
 La lógica vive en `src/core/`, sin dependencias de Next, y la consumen dos caras: el panel (vía
 `src/lib/`, reexportaciones `server-only`) y el CLI `t360` (`src/cli/`). Tests con `node --test`
@@ -94,7 +94,18 @@ sobre un `$HOME` temporal, un `buzz` falso y un `security` falso: sin red ni lla
   bajo raíz prohibida y destino symlink; commitea `docs(grill): <slug> verdict` (solo esa ruta),
   anota `landed_*` y publica el cierre en el hilo (best effort: si falla, lo imprime para
   publicarlo a mano). Nunca hace push.
-- `src/cli/main.ts`: `t360 status | kickoff | collect` (`--json`; códigos de salida 0/1/2 y los de
+- `src/core/scan.ts` (`t360 scan`): migra `wait-check.sh` como pasada única para el LaunchAgent.
+  Recorre los `kickoff.json` abiertos por `t360 kickoff` (llevan `plane`; los del skill quedan
+  para su Monitor durante la transición) sin `checked_at`/`landed_at`, aplica la misma regla que
+  la tarjeta del panel (`threadMessages` + `turnFrom`: ✅ exacto del owner en el hilo), anota
+  `checked_at` bajo candado y publica en el hilo qué artefactos faltan. Nunca aterriza (S4);
+  idempotente.
+- `src/core/launchd.ts` (`t360 install-agent | uninstall-agent`): plist `com.andrulli.t360`
+  (`StartInterval` 15, node absoluto de `process.execPath`, `PATH` con el dir de `buzz_bin`,
+  logs en `~/Library/Logs/t360*.log`, sin credenciales), escritura atómica, rehúsa symlinks;
+  `launchctl bootout/bootstrap/enable`. Plantilla y notas en `launchd/`.
+- `src/cli/main.ts`: `t360 status | kickoff | collect | scan | install-agent | uninstall-agent`
+  (`--json`; códigos de salida 0/1/2 y los de
   `collect.sh`: 3 plano, 4 artefacto faltante, 5 destino existe, 6 candado). `bin` en
   `package.json` apunta a `dist/cli/main.js` (`npm run build:cli`); la fuente corre directa con
   `node src/cli/main.ts` gracias al type stripping de Node.
