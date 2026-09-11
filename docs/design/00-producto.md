@@ -41,14 +41,15 @@ se convierten en trabajo para agentes en Conductor.
 Su primera pieza es una **web app local** (Next.js, se levanta desde la pestaña Run de Conductor)
 que da la vista que hoy solo existe repartida entre la terminal, `PLANS/` y los canales de Buzz:
 
-1. **v0 — leer (hecho en este commit)**: lista de grills en `<AGENT_HOME>/PLANS/`, estado
+1. **v0 — leer (hecho)**: lista de grills en `<AGENT_HOME>/PLANS/`, estado
    (`abierto` = kickoff sin verdict, `cerrado` = verdict presente, `notas` = carpeta sin kickoff),
    modo, canal, fechas, y lectura de brief/ledger/verdict renderizados. Cero escrituras.
 2. **v1 — observar Buzz (hecho)**: en la página del grill, tarjeta de turno ("te toca
    responder" con la última pregunta del agente / "turno de Claude" / "cerrado con ✅") y pestaña
    **Hilo** con los mensajes del kickoff y sus respuestas, autores resueltos por pubkey. Se lee
-   con `buzz messages get` a través del `buzz.sh` del skill (identidad `Claude Terminal`); la
-   lista principal sigue siendo de disco para no golpear el relay por cada fila.
+   con `buzz messages get` con la identidad `Claude Terminal` (desde F1, `src/core/relay.ts`
+   en vez del `buzz.sh` del skill); la lista principal sigue siendo de disco para no golpear el
+   relay por cada fila.
 3. **v2 — operar (decidido, en plan)**: la lógica de operar pasa a un CLI **`t360`** en este
    repo (`kickoff | scan | collect | status`), el vigilante del ✅ es un LaunchAgent que ejecuta
    `t360 scan`, y el skill `buzz-kickoff` queda como envoltorio fino. El panel abre grills y
@@ -58,28 +59,33 @@ que da la vista que hoy solo existe repartida entre la terminal, `PLANS/` y los 
    agentes (`buzz-acp` corriendo, cuál), y puesto portable (qué falta en esta máquina según
    `SETUP.md`).
 
-## Arquitectura v0
+## Arquitectura (F1 del plan v2, 2026-09-11)
 
-- `src/lib/config.ts`: lee `~/.config/buzz-kickoff.env` (solo `AGENT_HOME`, `AGENT_NAME`,
-  `BUZZ_RELAY_URL`; las cuentas del llavero no salen del servidor). Sin archivo → `~/.buzz`.
-- `src/lib/grills.ts`: modelo `Grill` a partir del disco. Los slugs se validan (`^[a-z0-9-]+$`)
-  antes de convertirse en ruta.
+La lógica vive en `src/core/`, sin dependencias de Next, y la consumen dos caras: el panel (vía
+`src/lib/`, reexportaciones `server-only`) y el CLI `t360` (`src/cli/`). Tests con `node --test`
+sobre un `$HOME` temporal, un `buzz` falso y un `security` falso: sin red ni llavero.
+
+- `src/core/config.ts`: lee `~/.config/t360/config.toml` (`[agent]`, `[owner]`, `[relay]`,
+  `[keychain]`, `[landing]`) y, si no existe, `~/.config/buzz-kickoff.env` con las claves del
+  skill. Solo rutas, nombres y pubkeys; la referencia al llavero son nombres de servicio y cuenta.
+- `src/core/grills.ts`: modelo `Grill` a partir del disco. Los slugs se validan (`^[a-z0-9-]+$`)
+  antes de convertirse en ruta. `STATUS_LABEL` y `MODE_LABEL` son las etiquetas que comparten
+  panel y CLI.
+- `src/core/relay.ts`: sustituye el exec de `buzz.sh`. `createRelay({ allow })` lee la clave
+  con `security find-generic-password` en el momento de la llamada y ejecuta `buzz_bin` con
+  `BUZZ_PRIVATE_KEY`/`BUZZ_AUTH_TAG` en el entorno del hijo. La lista blanca por defecto es de
+  lectura (`messages get`, `users get`, `channels get`) y es la única que ve el panel; el CLI la
+  amplía por subcomando cuando lleguen `kickoff`/`collect`/`scan`.
+- `src/core/thread.ts`: filtra los mensajes del canal a los que responden al `root_event_id`,
+  resuelve autores (cache por relay) y deriva el **turno**; `describeTurn` produce el texto de la
+  tarjeta que pintan tanto el panel como `t360 status`.
+- `src/cli/main.ts`: `t360 status [slug] [--json]` (códigos de salida 0/1/2/3). `bin` en
+  `package.json` apunta a `dist/cli/main.js` (`npm run build:cli`); la fuente corre directa con
+  `node src/cli/main.ts` gracias al type stripping de Node.
 - `src/app/page.tsx` y `src/app/grills/[slug]/page.tsx`: Server Components, `force-dynamic`,
-  leen el disco en cada petición; sin API pública ni estado.
-- `.conductor/settings.toml`: `dev` en `$CONDUCTOR_PORT` (por defecto) y `check` (lint + tipos).
-
-## Arquitectura v1
-
-- `src/lib/buzz.ts`: ejecuta `~/.claude/skills/buzz-kickoff/scripts/buzz.sh` (o `BUZZ_SH`) con
-  una lista blanca de subcomandos de lectura (`messages get`, `users get`, `channels get`). La
-  clave nunca pasa por el panel: la carga el wrapper desde el llavero, como en el skill.
-- `src/lib/thread.ts`: filtra los mensajes del canal a los que responden al `root_event_id` del
-  kickoff, resuelve autores (`users get`, cacheado en memoria) y deriva el **turno**: `✅` del
-  owner → cerrado; último mensaje del agente → le toca al humano (con la pregunta `❓`);
-  último mensaje humano → le toca al agente.
-- `src/app/grills/[slug]/thread-panel.tsx`: Server Components async bajo `Suspense`, así la
-  página pinta desde disco y el relay llega en streaming (~1 s). Una sola lectura por petición
-  (`react.cache`).
+  leen el disco en cada petición; la tarjeta de turno y la pestaña **Hilo** llegan en streaming
+  bajo `Suspense` con una sola lectura del relay por petición (`react.cache`).
+- `.conductor/settings.toml`: `dev` en `$CONDUCTOR_PORT` (por defecto) y `check`.
 
 ## Abierto
 

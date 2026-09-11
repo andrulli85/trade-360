@@ -33,7 +33,7 @@ trade-360/
 
 Cada fase termina con un PR mergeable por sí solo; el panel sigue funcionando en todo momento.
 
-### F1 — `src/core` y `t360 status` (cimiento)
+### F1 — `src/core` y `t360 status` (cimiento) — hecho (2026-09-11)
 
 - Mover `config.ts`, `grills.ts`, `buzz.ts`, `thread.ts` a `src/core/` sin `server-only`; los
   archivos de `src/lib/` quedan como reexportaciones marcadas `server-only`.

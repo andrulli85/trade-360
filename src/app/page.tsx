@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CONFIG_FILE_PATH, loadConfig } from "@/lib/config";
+import { configPaths, loadConfig } from "@/lib/config";
 import { listGrills, MODE_LABEL } from "@/lib/grills";
 import { formatEpochMs, formatEpochSeconds, shortId } from "@/lib/format";
 import { StatusBadge } from "@/components/status-badge";
@@ -33,9 +33,9 @@ export default async function GrillsPage() {
 
       {config.source === "defaults" && (
         <p className="rounded border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
-          No se encontró <code className="font-mono">{CONFIG_FILE_PATH}</code>; se usan los valores por
-          defecto (<code className="font-mono">~/.buzz</code>, agente <code className="font-mono">Claude</code>).
-          Es el mismo archivo que usa el skill <code className="font-mono">buzz-kickoff</code>.
+          No se encontró <code className="font-mono">{configPaths().toml}</code> ni{" "}
+          <code className="font-mono">{configPaths().env}</code>; se usan los valores por defecto (
+          <code className="font-mono">~/.buzz</code>, agente <code className="font-mono">Claude</code>).
         </p>
       )}
 

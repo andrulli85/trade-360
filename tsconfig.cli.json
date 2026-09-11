@@ -1,0 +1,19 @@
+{
+  // Emits src/core + src/cli to dist/ for the `t360` bin. Tests and `node
+  // src/cli/main.ts` run the sources directly (Node type stripping).
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "incremental": false,
+    "outDir": "dist",
+    "rootDir": "src",
+    "target": "es2022",
+    "lib": ["es2022"],
+    "types": ["node"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "rewriteRelativeImportExtensions": true,
+    "plugins": []
+  },
+  "include": ["src/core/**/*.ts", "src/cli/**/*.ts"]
+}
