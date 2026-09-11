@@ -37,8 +37,11 @@ hoy solo existe repartida entre la terminal, `PLANS/` y los canales de Buzz:
 1. **v0 — leer (hecho en este commit)**: lista de grills en `<AGENT_HOME>/PLANS/`, estado
    (`abierto` = kickoff sin verdict, `cerrado` = verdict presente, `notas` = carpeta sin kickoff),
    modo, canal, fechas, y lectura de brief/ledger/verdict renderizados. Cero escrituras.
-2. **v1 — observar Buzz**: hilo del grill en vivo (`buzz messages get` con la identidad
-   `Claude Terminal`), última pregunta pendiente, quién debe responder. Solo lectura del relay.
+2. **v1 — observar Buzz (hecho)**: en la página del grill, tarjeta de turno ("te toca
+   responder" con la última pregunta del agente / "turno de Claude" / "cerrado con ✅") y pestaña
+   **Hilo** con los mensajes del kickoff y sus respuestas, autores resueltos por pubkey. Se lee
+   con `buzz messages get` a través del `buzz.sh` del skill (identidad `Claude Terminal`); la
+   lista principal sigue siendo de disco para no golpear el relay por cada fila.
 3. **v2 — operar**: abrir un grill desde el panel (misma lógica que `/buzz-kickoff`: brief,
    canal, kickoff, watcher) y aterrizar artefactos en el repo elegido, reutilizando los scripts
    del skill, no reimplementándolos. Aquí entra la clasificación de plano antes de crear nada.
@@ -55,6 +58,19 @@ hoy solo existe repartida entre la terminal, `PLANS/` y los canales de Buzz:
 - `src/app/page.tsx` y `src/app/grills/[slug]/page.tsx`: Server Components, `force-dynamic`,
   leen el disco en cada petición; sin API pública ni estado.
 - `.conductor/settings.toml`: `dev` en `$CONDUCTOR_PORT` (por defecto) y `check` (lint + tipos).
+
+## Arquitectura v1
+
+- `src/lib/buzz.ts`: ejecuta `~/.claude/skills/buzz-kickoff/scripts/buzz.sh` (o `BUZZ_SH`) con
+  una lista blanca de subcomandos de lectura (`messages get`, `users get`, `channels get`). La
+  clave nunca pasa por el panel: la carga el wrapper desde el llavero, como en el skill.
+- `src/lib/thread.ts`: filtra los mensajes del canal a los que responden al `root_event_id` del
+  kickoff, resuelve autores (`users get`, cacheado en memoria) y deriva el **turno**: `✅` del
+  owner → cerrado; último mensaje del agente → le toca al humano (con la pregunta `❓`);
+  último mensaje humano → le toca al agente.
+- `src/app/grills/[slug]/thread-panel.tsx`: Server Components async bajo `Suspense`, así la
+  página pinta desde disco y el relay llega en streaming (~1 s). Una sola lectura por petición
+  (`react.cache`).
 
 ## Abierto
 

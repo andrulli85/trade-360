@@ -8,7 +8,7 @@ setup = "npm ci"
 
 [scripts.run.dev]
 available_in = [ "local" ]
-command = "echo \"trade-360: http://localhost:$CONDUCTOR_PORT\" && npm run dev -- --port \"$CONDUCTOR_PORT\""
+command = "echo \"trade-360: http://localhost:$CONDUCTOR_PORT\" && npm run dev -- --hostname 127.0.0.1 --port \"$CONDUCTOR_PORT\""
 default = true
 icon = "globe"
 

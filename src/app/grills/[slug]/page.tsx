@@ -1,35 +1,40 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
+import { loadConfig } from "@/lib/config";
 import { ARTIFACT_FILE, getGrill, MODE_LABEL, readGrillFile } from "@/lib/grills";
 import { formatEpochSeconds } from "@/lib/format";
 import { StatusBadge } from "@/components/status-badge";
 import { Markdown } from "@/components/markdown";
+import { PanelSkeleton, ThreadTab, TurnPanel } from "./thread-panel";
 
 export const dynamic = "force-dynamic";
 
-const TABS = [
-  { file: ARTIFACT_FILE.verdict, label: "Veredicto" },
-  { file: ARTIFACT_FILE.ledger, label: "Ledger" },
-  { file: ARTIFACT_FILE.brief, label: "Brief" },
+const THREAD_TAB = "thread";
+
+const ARTIFACT_TABS = [
+  { file: ARTIFACT_FILE.verdict, key: "verdict", label: "Veredicto" },
+  { file: ARTIFACT_FILE.ledger, key: "ledger", label: "Ledger" },
+  { file: ARTIFACT_FILE.brief, key: "brief", label: "Brief" },
 ] as const;
 
-export default async function GrillPage({
-  params,
-  searchParams,
-}: PageProps<"/grills/[slug]">) {
+export default async function GrillPage({ params, searchParams }: PageProps<"/grills/[slug]">) {
   const { slug } = await params;
-  const grill = await getGrill(slug);
+  const [grill, config] = await Promise.all([getGrill(slug), loadConfig()]);
   if (!grill) notFound();
 
-  const available = [
-    ...TABS.filter((t) => grill.artifacts[t.file.replace(".md", "") as "verdict" | "ledger" | "brief"]),
+  const tabs = [
+    ...(grill.kickoff ? [{ file: THREAD_TAB, label: "Hilo" }] : []),
+    ...ARTIFACT_TABS.filter((t) => grill.artifacts[t.key]).map(({ file, label }) => ({ file, label })),
     ...grill.extraFiles.map((f) => ({ file: f, label: f.replace(/\.md$/, "") })),
   ];
+  // Open grills land on the live thread; closed ones on the verdict.
+  const defaultTab = grill.status === "open" ? THREAD_TAB : tabs.find((t) => t.file !== THREAD_TAB)?.file;
   const requested = (await searchParams).file;
-  const selected =
-    available.find((t) => t.file === (Array.isArray(requested) ? requested[0] : requested)) ??
-    available[0];
-  const content = selected ? await readGrillFile(grill, selected.file) : null;
+  const wanted = Array.isArray(requested) ? requested[0] : requested;
+  const selected = tabs.find((t) => t.file === wanted) ?? tabs.find((t) => t.file === defaultTab) ?? tabs[0];
+  const content =
+    selected && selected.file !== THREAD_TAB ? await readGrillFile(grill, selected.file) : null;
 
   return (
     <div className="space-y-6">
@@ -62,12 +67,18 @@ export default async function GrillPage({
         </dl>
       </div>
 
-      {available.length === 0 ? (
+      {grill.kickoff && (
+        <Suspense fallback={<PanelSkeleton />}>
+          <TurnPanel grill={grill} agentName={config.agentName} />
+        </Suspense>
+      )}
+
+      {tabs.length === 0 ? (
         <p className="text-sm text-muted">Esta carpeta no tiene archivos markdown.</p>
       ) : (
         <>
           <nav className="flex gap-1 border-b border-border text-sm">
-            {available.map((t) => (
+            {tabs.map((t) => (
               <Link
                 key={t.file}
                 href={`/grills/${grill.slug}?file=${encodeURIComponent(t.file)}`}
@@ -81,7 +92,11 @@ export default async function GrillPage({
               </Link>
             ))}
           </nav>
-          {content !== null ? (
+          {selected?.file === THREAD_TAB ? (
+            <Suspense fallback={<PanelSkeleton lines={4} />}>
+              <ThreadTab grill={grill} />
+            </Suspense>
+          ) : content !== null ? (
             <Markdown source={content} />
           ) : (
             <p className="text-sm text-muted">No se pudo leer {selected?.file}.</p>
