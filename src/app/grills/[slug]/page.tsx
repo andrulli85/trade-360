@@ -62,6 +62,21 @@ export default async function GrillPage({ params, searchParams }: PageProps<"/gr
               <dd className="font-mono break-all text-foreground">{grill.kickoff.root_event_id}</dd>
               <dt>Inicio</dt>
               <dd className="text-foreground">{formatEpochSeconds(grill.kickoff.started_at)}</dd>
+              {grill.kickoff.plane && (
+                <>
+                  <dt>Plano</dt>
+                  <dd className="text-foreground">{grill.kickoff.plane}</dd>
+                </>
+              )}
+              {grill.kickoff.landed_at && (
+                <>
+                  <dt>Aterrizado</dt>
+                  <dd className="font-mono break-all text-foreground">
+                    {grill.kickoff.landed_repo}/docs/grill/{grill.slug}/ · {grill.kickoff.commit?.slice(0, 7)} ·{" "}
+                    {formatEpochSeconds(grill.kickoff.landed_at)}
+                  </dd>
+                </>
+              )}
             </>
           )}
         </dl>

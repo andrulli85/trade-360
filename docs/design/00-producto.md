@@ -59,7 +59,7 @@ que da la vista que hoy solo existe repartida entre la terminal, `PLANS/` y los 
    agentes (`buzz-acp` corriendo, cuál), y puesto portable (qué falta en esta máquina según
    `SETUP.md`).
 
-## Arquitectura (F1 del plan v2, 2026-09-11)
+## Arquitectura (F1–F2 del plan v2, 2026-09-11)
 
 La lógica vive en `src/core/`, sin dependencias de Next, y la consumen dos caras: el panel (vía
 `src/lib/`, reexportaciones `server-only`) y el CLI `t360` (`src/cli/`). Tests con `node --test`
@@ -79,7 +79,23 @@ sobre un `$HOME` temporal, un `buzz` falso y un `security` falso: sin red ni lla
 - `src/core/thread.ts`: filtra los mensajes del canal a los que responden al `root_event_id`,
   resuelve autores (cache por relay) y deriva el **turno**; `describeTurn` produce el texto de la
   tarjeta que pintan tanto el panel como `t360 status`.
-- `src/cli/main.ts`: `t360 status [slug] [--json]` (códigos de salida 0/1/2/3). `bin` en
+- `src/core/kickoff-file.ts`: `kickoff.json` como único registro (D5): campos v2 (`plane`,
+  `brief_source`, `checked_at`, `landed_repo`, `commit`, `landed_at`), escritura atómica
+  (tmp + rename) y candado por slug (`PLANS/<slug>/.lock`, O_EXCL; uno rancio se borra a mano).
+- `src/core/plane.ts`: la frontera de planos que una ruta puede decidir: `landing.forbidden_roots`
+  de la config (`~/work` por defecto), realpath con symlinks seguidos y colas inexistentes.
+- `src/core/kickoff.ts` (`t360 kickoff`): migra `kickoff.sh`. `--plane` obligatorio (D4); un
+  brief bajo raíz prohibida solo puede abrirse como `work`. Escribe `brief.md`, crea el canal
+  privado, añade miembros, publica `@<agente> /grill-me <modo> PLANS/<slug>/brief.md` y guarda
+  `kickoff.json` bajo candado. Si el relay falla a medias no hay `kickoff.json` y el error nombra
+  el canal creado.
+- `src/core/collect.ts` (`t360 collect`): migra `collect.sh` y lo que el skill hacía a mano:
+  copia todo-o-nada por directorio temporal + rename, rechaza `plane=work`, brief/repo/destino
+  bajo raíz prohibida y destino symlink; commitea `docs(grill): <slug> verdict` (solo esa ruta),
+  anota `landed_*` y publica el cierre en el hilo (best effort: si falla, lo imprime para
+  publicarlo a mano). Nunca hace push.
+- `src/cli/main.ts`: `t360 status | kickoff | collect` (`--json`; códigos de salida 0/1/2 y los de
+  `collect.sh`: 3 plano, 4 artefacto faltante, 5 destino existe, 6 candado). `bin` en
   `package.json` apunta a `dist/cli/main.js` (`npm run build:cli`); la fuente corre directa con
   `node src/cli/main.ts` gracias al type stripping de Node.
 - `src/app/page.tsx` y `src/app/grills/[slug]/page.tsx`: Server Components, `force-dynamic`,

@@ -1,24 +1,16 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { loadConfig, type Config } from "./config.ts";
+import { readKickoffFile, type GrillMode, type Kickoff } from "./kickoff-file.ts";
 
 /**
  * A grill is one Buzz thread where the agent interrogates humans about a brief.
  * On disk it is `<agentHome>/PLANS/<slug>/` with up to four artifacts written by
  * the `buzz-kickoff` skill (terminal side) and the `grill-me` skill (agent side).
  */
-export type GrillMode = "rf" | "oq" | "dec" | "plan" | "doc";
+export type { GrillMode, Kickoff } from "./kickoff-file.ts";
 
 export type ArtifactName = "brief" | "ledger" | "verdict" | "kickoff";
-
-export type Kickoff = {
-  channel_id: string;
-  root_event_id: string;
-  slug: string;
-  mode: GrillMode;
-  brief: string;
-  started_at: number;
-};
 
 export type GrillStatus =
   /** kickoff.json exists, verdict.md does not: the thread is still open. */
@@ -85,13 +77,8 @@ async function exists(p: string): Promise<boolean> {
   }
 }
 
-async function readKickoff(dir: string): Promise<Kickoff | null> {
-  try {
-    const raw = await readFile(path.join(dir, ARTIFACT_FILES.kickoff), "utf8");
-    return JSON.parse(raw) as Kickoff;
-  } catch {
-    return null;
-  }
+function readKickoff(dir: string): Promise<Kickoff | null> {
+  return readKickoffFile(dir).catch(() => null);
 }
 
 async function readGrill(plansDir: string, slug: string): Promise<Grill | null> {

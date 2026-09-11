@@ -46,7 +46,7 @@ Cada fase termina con un PR mergeable por sí solo; el panel sigue funcionando e
   `tools/buzz-resume/test_buzz_resume.py`): sin red, sin llavero, sin launchd.
 - Aceptación: el panel v1 funciona idéntico usando `src/core`; `t360 status` coincide con él.
 
-### F2 — `t360 kickoff` y `t360 collect` (migran `kickoff.sh` y `collect.sh`)
+### F2 — `t360 kickoff` y `t360 collect` (migran `kickoff.sh` y `collect.sh`) — hecho (2026-09-11)
 
 - `t360 kickoff <slug> --mode dec --plane personal|work --brief <path>|--stdin --description "…"
   [--with <pubkey>]`: valida slug (≤23), exige `plane`, crea canal privado, añade miembros,
