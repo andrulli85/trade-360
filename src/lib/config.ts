@@ -5,8 +5,8 @@ import path from "node:path";
 
 /**
  * Non-secret view of `~/.config/buzz-kickoff.env`, the machine-local file the
- * `buzz-kickoff` skill already reads. Only the keys the UI needs are exposed;
- * keychain account names and anything else never leave the server.
+ * `buzz-kickoff` skill already reads. Only the keys the UI needs are exposed
+ * (paths, names, public keys); keychain account names never leave the server.
  */
 export type AppConfig = {
   /** Absolute path of the managed agent's workspace (default `~/.buzz`). */
@@ -15,6 +15,9 @@ export type AppConfig = {
   agentName: string;
   /** Relay the agent is connected to, if configured. */
   relayUrl: string | null;
+  /** Public keys (not secrets) used to tell who is who in a thread. */
+  agentPubkey: string | null;
+  ownerPubkey: string | null;
   /** Where the config came from, so the UI can say "not configured". */
   source: "env-file" | "defaults";
 };
@@ -45,6 +48,8 @@ export async function loadConfig(): Promise<AppConfig> {
     agentHome: path.join(homedir(), ".buzz"),
     agentName: "Claude",
     relayUrl: null,
+    agentPubkey: null,
+    ownerPubkey: null,
     source: "defaults",
   };
   let env: Record<string, string>;
@@ -57,6 +62,8 @@ export async function loadConfig(): Promise<AppConfig> {
     agentHome: env.AGENT_HOME || defaults.agentHome,
     agentName: env.AGENT_NAME || defaults.agentName,
     relayUrl: env.BUZZ_RELAY_URL || null,
+    agentPubkey: env.AGENT_PUBKEY || null,
+    ownerPubkey: env.OWNER_PUBKEY || null,
     source: "env-file",
   };
 }
