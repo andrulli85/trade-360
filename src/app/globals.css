@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0f0f10;
+  --surface: #17181a;
+  --border: #2a2b2f;
+  --foreground: #e7e7ea;
+  --muted: #9a9ba3;
+  --accent: #e0a458;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Rendered markdown (ledger, verdict, brief). */
+.prose-grill h1 { @apply text-2xl font-semibold mt-2 mb-4; }
+.prose-grill h2 { @apply text-lg font-semibold mt-8 mb-3 border-b border-border pb-1; }
+.prose-grill h3 { @apply text-base font-semibold mt-6 mb-2; }
+.prose-grill p { @apply my-3 leading-relaxed; }
+.prose-grill ul { @apply list-disc pl-6 my-3 space-y-1; }
+.prose-grill ol { @apply list-decimal pl-6 my-3 space-y-1; }
+.prose-grill li > ul, .prose-grill li > ol { @apply my-1; }
+.prose-grill code { @apply font-mono text-[0.85em] bg-surface border border-border rounded px-1 py-0.5; }
+.prose-grill pre { @apply bg-surface border border-border rounded p-3 overflow-x-auto my-3; }
+.prose-grill pre code { @apply bg-transparent border-0 p-0; }
+.prose-grill blockquote { @apply border-l-2 border-accent pl-4 text-muted my-3; }
+.prose-grill hr { @apply border-border my-6; }
+.prose-grill a { @apply text-accent underline underline-offset-2; }
+.prose-grill table { @apply w-full text-sm my-4 border-collapse; }
+.prose-grill th, .prose-grill td { @apply border border-border px-2 py-1 text-left align-top; }
+.prose-grill input[type="checkbox"] { @apply mr-2 align-middle; }

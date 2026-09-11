@@ -1,0 +1,17 @@
+"$schema" = "https://conductor.build/schemas/settings.repo.schema.json"
+
+# Conductor workspace scripts. `dev` shows up in the Run tab and binds the port
+# Conductor assigns to this workspace, so several workspaces can run at once.
+
+[scripts]
+setup = "npm ci"
+
+[scripts.run.dev]
+available_in = [ "local" ]
+command = "echo \"trade-360: http://localhost:$CONDUCTOR_PORT\" && npm run dev -- --port \"$CONDUCTOR_PORT\""
+default = true
+icon = "globe"
+
+[scripts.run.check]
+command = "npm run check"
+icon = "test-tube"
