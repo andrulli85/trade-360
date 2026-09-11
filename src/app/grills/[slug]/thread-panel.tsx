@@ -1,7 +1,6 @@
 import { cache } from "react";
 import type { Grill } from "@/lib/grills";
-import { getThread } from "@/lib/thread";
-import { buzzWrapperPath } from "@/lib/buzz";
+import { getThread, type ThreadFailure } from "@/lib/thread";
 import { formatEpochSeconds } from "@/lib/format";
 import { TurnCard } from "@/components/turn-card";
 import { Thread } from "@/components/thread";
@@ -9,14 +8,16 @@ import { Thread } from "@/components/thread";
 // One relay read per request, shared by the card and the tab.
 const cachedThread = cache((grill: Grill) => getThread(grill));
 
-function Unavailable({ reason, detail }: { reason: string; detail: string }) {
-  const hint =
-    reason === "no-wrapper"
-      ? `Falta el wrapper de buzz-cli en ${buzzWrapperPath()} (enlaza el skill buzz-kickoff en ~/.claude/skills/ o define BUZZ_SH).`
-      : detail;
+const HINT: Partial<Record<ThreadFailure, string>> = {
+  "no-identity": "Añade el bloque [keychain] a ~/.config/t360/config.toml (o KEYCHAIN_* en buzz-kickoff.env).",
+  "no-bin": "Define [relay] buzz_bin en ~/.config/t360/config.toml (o BUZZ_BIN en buzz-kickoff.env).",
+};
+
+function Unavailable({ reason, detail }: { reason: ThreadFailure; detail: string }) {
   return (
     <p className="rounded border border-border bg-surface px-4 py-3 text-sm text-muted">
-      Hilo de Buzz no disponible: <span className="font-mono">{hint}</span>
+      Hilo de Buzz no disponible: <span className="font-mono">{detail}</span>
+      {HINT[reason] && <span className="block pt-1">{HINT[reason]}</span>}
     </p>
   );
 }
